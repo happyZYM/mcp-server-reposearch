@@ -47,7 +47,7 @@ class RepoSearchServer {
             properties: {
               directory: {
                 type: 'string',
-                description: 'Directory to search in',
+                description: 'Directory to search in (use absolute path)',
               },
               query: {
                 type: 'string',

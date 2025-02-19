@@ -40,27 +40,35 @@ class FileFilter {
     this.initialized = true;
   }
 
-  shouldIncludeFile(filePath: string, baseDir: string): boolean {
-    const relativePath = path.relative(baseDir, filePath);
+  shouldIncludeFile(filePath: string, rootDir: string, isDirectory: boolean = false): boolean {
+    // Always use path relative to the root directory
+    let relativePath = path.relative(rootDir, filePath);
+    
+    // For directories, ensure path ends with '/' as per ignore rules
+    if (isDirectory) {
+      relativePath = relativePath.endsWith('/') ? relativePath : relativePath + '/';
+    }
+    
     return !this.ignoreInstance.ignores(relativePath);
   }
 }
 
 const fileFilter = new FileFilter();
 
-async function* walkDirectory(dir: string): AsyncGenerator<string> {
-  await fileFilter.initialize(dir);
-  const entries = await fs.readdir(dir, { withFileTypes: true });
+async function* walkDirectory(currentDir: string, rootDir: string): AsyncGenerator<string> {
+  // Initialize with root directory
+  await fileFilter.initialize(rootDir);
+  const entries = await fs.readdir(currentDir, { withFileTypes: true });
   
   for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name);
+    const fullPath = path.join(currentDir, entry.name);
     
     if (entry.isDirectory()) {
-      // Check if directory should be included
-      if (fileFilter.shouldIncludeFile(fullPath, dir)) {
-        yield* walkDirectory(fullPath);
+      // Check if directory should be included, passing isDirectory flag
+      if (fileFilter.shouldIncludeFile(fullPath, rootDir, true)) {
+        yield* walkDirectory(fullPath, rootDir);
       }
-    } else if (fileFilter.shouldIncludeFile(fullPath, dir)) {
+    } else if (fileFilter.shouldIncludeFile(fullPath, rootDir, false)) {
       try {
         // Basic binary file check
         const buffer = await fs.readFile(fullPath, { encoding: 'utf8', flag: 'r' });
@@ -99,7 +107,7 @@ export async function searchFiles(
   const regex = createSearchRegex(options);
   
   try {
-    for await (const filePath of walkDirectory(directory)) {
+    for await (const filePath of walkDirectory(directory, directory)) {
       const content = await fs.readFile(filePath, 'utf-8');
       const lines = content.split('\n');
       
