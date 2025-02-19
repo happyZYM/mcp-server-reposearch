@@ -41,7 +41,7 @@ class RepoSearchServer {
       tools: [
         {
           name: 'search',
-          description: 'Search for text content in files within a directory',
+          description: 'Search for text content in files within a directory, provide more features than builtin `search_files` tool. CAREFULLY set the arguments to avoid introducing too much content. You should use this tool if you need to search the content of file in a repo.',
           inputSchema: {
             type: 'object',
             properties: {
@@ -67,6 +67,11 @@ class RepoSearchServer {
                 type: 'boolean',
                 description: 'Whether to match whole words only',
                 default: false,
+              },
+              includeContent: {
+                type: 'boolean',
+                description: 'Whether to include matching line content in results. When you don\'t need the detailed content, you MUST disable it to save tokens. When you don\'t need the detailed content, you MUST disable it to save tokens. When you don\'t need the detailed content, you MUST disable it to save tokens.',
+                default: true,
               }
             },
             required: ['directory', 'query'],
@@ -102,9 +107,10 @@ class RepoSearchServer {
         isRegex: typeof args.isRegex === 'boolean' ? args.isRegex : false,
         caseSensitive: typeof args.caseSensitive === 'boolean' ? args.caseSensitive : false,
         wholeWord: typeof args.wholeWord === 'boolean' ? args.wholeWord : false,
+        includeContent: typeof args.includeContent === 'boolean' ? args.includeContent : true,
       };
 
-      const { directory, query, isRegex, caseSensitive, wholeWord } = searchArgs;
+      const { directory, query, isRegex, caseSensitive, wholeWord, includeContent } = searchArgs;
 
       try {
         const results = await searchFiles(directory, {
@@ -112,6 +118,7 @@ class RepoSearchServer {
           isRegex,
           caseSensitive,
           wholeWord,
+          includeContent,
         });
 
         return {

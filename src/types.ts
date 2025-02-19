@@ -3,12 +3,13 @@ export interface SearchOptions {
   isRegex?: boolean;
   caseSensitive?: boolean;
   wholeWord?: boolean;
+  includeContent?: boolean;
 }
 
 export interface SearchResult {
   file: string;
   line: number;
-  content: string;
+  content?: string;
   matchStart: number;
   matchEnd: number;
 }
@@ -19,4 +20,5 @@ export interface SearchToolArgs {
   isRegex?: boolean;
   caseSensitive?: boolean;
   wholeWord?: boolean;
+  includeContent?: boolean;
 }

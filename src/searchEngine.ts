@@ -117,13 +117,18 @@ export async function searchFiles(
         
         regex.lastIndex = 0; // Reset regex state
         while ((match = regex.exec(line)) !== null) {
-          results.push({
+          const result: SearchResult = {
             file: path.relative(directory, filePath),
             line: lineNum + 1,
-            content: line.trim(),
             matchStart: match.index,
             matchEnd: match.index + match[0].length,
-          });
+          };
+          
+          if (options.includeContent !== false) {
+            result.content = line.trim();
+          }
+          
+          results.push(result);
         }
       }
     }
