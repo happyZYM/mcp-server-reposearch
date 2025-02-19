@@ -1,0 +1,12 @@
+# 当前项目简介
+当前项目名为`mcp-server-reposearch`，是一个开发中的MCP Server，因此你当前能看到的那个名为`mcp-server-reposearch`的MCP Server处于开发中状态。
+
+主要功能：它可以在某个目录及其子目录范围内，对所有文本文件的内容进行搜索。具体而言，搜索的条件需要兼容标准的VSCode的搜索方式，例如关键词搜索（支持是否区分大小写、是否要求全字匹配）、正则表达式搜索（按照VSCode自带搜索使用的那个标准），然后返回一个搜索项的出现列表（包含文件名和行号）。
+
+# 开发信息
+这个MCP Server主要使用typescript开发。
+
+mcp的typescript sdk: https://github.com/modelcontextprotocol/typescript-sdk
+
+# 备注
+这个项目涉及到很多非常新的细节，因此，遇到你不确定的地方，或者疑难问题，可以调用searxng工具来搜索网络、抓取网页获取相关信息。
