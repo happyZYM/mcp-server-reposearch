@@ -1,36 +1,77 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import createIgnore from 'ignore';
 import { SearchOptions, SearchResult } from './types.js';
 
-async function isTextFile(filePath: string): Promise<boolean> {
-  try {
-    const stats = await fs.stat(filePath);
-    if (!stats.isFile()) return false;
+class FileFilter {
+  private ignoreInstance = createIgnore();
+  private initialized = false;
 
-    // Simple text file extension check
-    const textExtensions = [
-      '.txt', '.md', '.js', '.ts', '.jsx', '.tsx', '.json', '.html', 
-      '.css', '.scss', '.less', '.py', '.java', '.c', '.cpp', '.h', 
-      '.hpp', '.rs', '.go', '.rb', '.php', '.xml', '.yaml', '.yml'
-    ];
-    return textExtensions.includes(path.extname(filePath).toLowerCase());
-  } catch {
-    return false;
+  async initialize(baseDir: string) {
+    if (this.initialized) return;
+
+    try {
+      // Try to read .reposearchignore file
+      const ignoreFilePath = path.join(baseDir, '.reposearchignore');
+      const ignoreContent = await fs.readFile(ignoreFilePath, 'utf-8');
+      this.ignoreInstance.add(ignoreContent);
+    } catch (error) {
+      // If .reposearchignore doesn't exist, use default patterns
+      const defaultPatterns = [
+        'node_modules/',
+        '.git/',
+        'build/',
+        'dist/',
+        // Add basic binary file patterns
+        '*.exe', '*.dll', '*.so', '*.dylib',
+        '*.jpg', '*.jpeg', '*.png', '*.gif',
+        '*.mp3', '*.mp4', '*.zip', '*.tar.gz',
+        // Allow common text files
+        '!*.txt', '!*.md', '!*.js', '!*.ts',
+        '!*.jsx', '!*.tsx', '!*.json', '!*.html',
+        '!*.css', '!*.scss', '!*.less', '!*.py',
+        '!*.java', '!*.c', '!*.cpp', '!*.h',
+        '!*.hpp', '!*.rs', '!*.go', '!*.rb',
+        '!*.php', '!*.xml', '!*.yaml', '!*.yml'
+      ];
+      this.ignoreInstance.add(defaultPatterns);
+    }
+
+    this.initialized = true;
+  }
+
+  shouldIncludeFile(filePath: string, baseDir: string): boolean {
+    const relativePath = path.relative(baseDir, filePath);
+    return !this.ignoreInstance.ignores(relativePath);
   }
 }
 
+const fileFilter = new FileFilter();
+
 async function* walkDirectory(dir: string): AsyncGenerator<string> {
+  await fileFilter.initialize(dir);
   const entries = await fs.readdir(dir, { withFileTypes: true });
   
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     
     if (entry.isDirectory()) {
-      // Skip node_modules and .git directories
-      if (entry.name === 'node_modules' || entry.name === '.git') continue;
-      yield* walkDirectory(fullPath);
-    } else if (await isTextFile(fullPath)) {
-      yield fullPath;
+      // Check if directory should be included
+      if (fileFilter.shouldIncludeFile(fullPath, dir)) {
+        yield* walkDirectory(fullPath);
+      }
+    } else if (fileFilter.shouldIncludeFile(fullPath, dir)) {
+      try {
+        // Basic binary file check
+        const buffer = await fs.readFile(fullPath, { encoding: 'utf8', flag: 'r' });
+        // Check for null bytes which typically indicate binary content
+        if (!buffer.includes('\0')) {
+          yield fullPath;
+        }
+      } catch {
+        // If we can't read the file or it's binary, skip it
+        continue;
+      }
     }
   }
 }

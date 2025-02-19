@@ -9,14 +9,19 @@
     "start": "node build/index.js",
     "dev": "tsc && node build/index.js"
   },
-  "keywords": ["mcp", "search", "files"],
+  "keywords": [
+    "mcp",
+    "search",
+    "files"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.5.0"
+    "@modelcontextprotocol/sdk": "^1.5.0",
+    "ignore": "^7.0.3"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
   }
 }
