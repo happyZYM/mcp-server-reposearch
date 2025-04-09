@@ -8,7 +8,7 @@ Features:
 - output format control:
   - [x] whether include content in result
   - [ ] include surrounding lines
-- [ ] tokens boom prevention
+- [x] tokens boom prevention
 
 Notes:
 - Currently you need to tell Cline to stop using `search_files` in the system prompt.
