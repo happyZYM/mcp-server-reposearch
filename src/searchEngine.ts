@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import createIgnore from 'ignore';
-import { SearchOptions, SearchResult } from './types.js';
+import { SearchOptions, SearchResult, SearchSummary } from './types.js';
 
 class FileFilter {
   private ignoreInstance = createIgnore();
@@ -99,12 +99,22 @@ function createSearchRegex(options: SearchOptions): RegExp {
   return new RegExp(query, caseSensitive ? 'g' : 'gi');
 }
 
+// Calculate the byte size of a search result
+function calculateResultSize(result: SearchResult): number {
+  // Calculate JSON string size in bytes
+  return Buffer.from(JSON.stringify(result)).length;
+}
+
 export async function searchFiles(
   directory: string,
   options: SearchOptions
-): Promise<SearchResult[]> {
+): Promise<{ results: SearchResult[], summary: SearchSummary }> {
   const results: SearchResult[] = [];
   const regex = createSearchRegex(options);
+  let totalBytes = 0;
+  let matchCount = 0;
+  const maxOutputBytes = options.maxOutputBytes ?? 4096; // Default to 4096 bytes
+  const hasLimit = maxOutputBytes >= 0; // -1 means no limit
   
   try {
     for await (const filePath of walkDirectory(directory, directory)) {
@@ -117,6 +127,8 @@ export async function searchFiles(
         
         regex.lastIndex = 0; // Reset regex state
         while ((match = regex.exec(line)) !== null) {
+          matchCount++;
+          
           const result: SearchResult = {
             file: path.relative(directory, filePath),
             line: lineNum + 1,
@@ -128,7 +140,13 @@ export async function searchFiles(
             result.content = line.trim();
           }
           
-          results.push(result);
+          const resultSize = calculateResultSize(result);
+          totalBytes += resultSize;
+          
+          // Only add to results if we're under the limit or if there's no limit
+          if (!hasLimit || maxOutputBytes === -1 || totalBytes <= maxOutputBytes) {
+            results.push(result);
+          }
         }
       }
     }
@@ -137,5 +155,16 @@ export async function searchFiles(
     throw error;
   }
   
-  return results;
+  const summary: SearchSummary = {
+    matchCount,
+    totalBytes,
+    limitExceeded: hasLimit && maxOutputBytes !== -1 && totalBytes > maxOutputBytes
+  };
+  
+  // If limit exceeded, clear results to save bandwidth
+  if (summary.limitExceeded) {
+    return { results: [], summary };
+  }
+  
+  return { results, summary };
 }

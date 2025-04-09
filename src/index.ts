@@ -72,6 +72,11 @@ class RepoSearchServer {
                 type: 'boolean',
                 description: 'Whether to include matching line content in results. When you don\'t need the detailed content, you MUST disable it to save tokens. When you don\'t need the detailed content, you MUST disable it to save tokens. When you don\'t need the detailed content, you MUST disable it to save tokens.',
                 default: true,
+              },
+              maxOutputBytes: {
+                type: 'number',
+                description: 'Maximum allowed output size in bytes. Default is 4096. Set to -1 for unlimited output.',
+                default: 4096,
               }
             },
             required: ['directory', 'query'],
@@ -108,24 +113,43 @@ class RepoSearchServer {
         caseSensitive: typeof args.caseSensitive === 'boolean' ? args.caseSensitive : false,
         wholeWord: typeof args.wholeWord === 'boolean' ? args.wholeWord : false,
         includeContent: typeof args.includeContent === 'boolean' ? args.includeContent : true,
+        maxOutputBytes: typeof args.maxOutputBytes === 'number' ? args.maxOutputBytes : 4096,
       };
 
-      const { directory, query, isRegex, caseSensitive, wholeWord, includeContent } = searchArgs;
+      const { directory, query, isRegex, caseSensitive, wholeWord, includeContent, maxOutputBytes } = searchArgs;
 
       try {
-        const results = await searchFiles(directory, {
+        const { results, summary } = await searchFiles(directory, {
           query,
           isRegex,
           caseSensitive,
           wholeWord,
           includeContent,
+          maxOutputBytes,
         });
+
+        if (summary.limitExceeded) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Output size limit exceeded. Found ${summary.matchCount} matches with a total size of ${summary.totalBytes} bytes, which exceeds the limit of ${maxOutputBytes} bytes. Try narrowing your search or increasing the maxOutputBytes limit.`,
+              },
+            ],
+          };
+        }
 
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(results, null, 2),
+              text: JSON.stringify({
+                results,
+                summary: {
+                  matchCount: summary.matchCount,
+                  totalBytes: summary.totalBytes
+                }
+              }, null, 2),
             },
           ],
         };

@@ -4,6 +4,7 @@ export interface SearchOptions {
   caseSensitive?: boolean;
   wholeWord?: boolean;
   includeContent?: boolean;
+  maxOutputBytes?: number;
 }
 
 export interface SearchResult {
@@ -21,4 +22,11 @@ export interface SearchToolArgs {
   caseSensitive?: boolean;
   wholeWord?: boolean;
   includeContent?: boolean;
+  maxOutputBytes?: number;
+}
+
+export interface SearchSummary {
+  matchCount: number;
+  totalBytes: number;
+  limitExceeded: boolean;
 }

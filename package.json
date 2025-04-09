@@ -1,6 +1,6 @@
 {
   "name": "mcp-server-reposearch",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP Server for searching text content in files",
   "main": "build/index.js",
   "type": "module",
