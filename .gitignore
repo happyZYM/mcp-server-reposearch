@@ -1,7 +1,5 @@
 # 依赖目录
 node_modules/
-yarn.lock
-package-lock.json
 
 # 编译输出
 dist/
